@@ -1,10 +1,25 @@
-#include <iostream>
+﻿#include <iostream>
 #include<boost/filesystem.hpp>
 #include<map>
 #include<string>
 #include<fstream>
+#include<chrono>
+#include<algorithm>
+#include<vector>
+
+const int MAX_DUMP = 50000;
 
 using namespace std;
+std::vector<std::string> cache;
+
+void out(std::ofstream & file)
+{
+	for (auto& v : cache)
+	{
+		file << v << std::endl;
+	}
+	cache.clear();
+}
 
 void getDirAllFile(boost::filesystem::path path,std::map<std::string,long> &fileCount,std::ofstream &file)
 {
@@ -25,21 +40,23 @@ void getDirAllFile(boost::filesystem::path path,std::map<std::string,long> &file
                 auto mapIt=fileCount.find(filePath.extension().string());
                 if(mapIt!=fileCount.end())
                 {
-                    (*mapIt).second=(*mapIt).second+1;
+                    mapIt->second=mapIt->second+1;
                 }
                 else
                 {
                     fileCount.insert(std::pair<std::string,int>(filePath.extension().string(),1));
                 }
 
-                std::cout<<filePath.string()<<std::endl;
-                file<<filePath.string()<<std::endl;
+				if (cache.size() > MAX_DUMP)
+					out(file);
+				else
+					cache.push_back(filePath.string());
             }
         }
     }
     catch(std::exception &e)
     {
-        std::cout<<e.what()<<"--"<<path.string()<<std::endl;
+        std::cout<<e.what()<<std::endl;
     }
 }
 
@@ -61,20 +78,39 @@ int main()
     if(!file)
         return -1;
 
-    std::cout<<"文件列表:"<<std::endl;
     file<<"文件列表:\n";
+
+    auto startTime=std::chrono::steady_clock::now();
     getDirAllFile(dir,fileCount,file);
-    std::cout<<std::endl;
+	out(file);
+    auto endTime=std::chrono::steady_clock::now();
+    auto duration=std::chrono::duration_cast<std::chrono::microseconds>(endTime-startTime);
+
     file<<std::endl;
 
-    std::cout<<std::endl<<std::endl;
     file<<"后缀名列表:"<<std::endl;
+
+    std::vector<std::pair<std::string,long> > list;
 
     for(auto it=fileCount.begin();it!=fileCount.end();++it)
     {
-        std::cout<<(*it).first<<":"<<(*it).second<<std::endl;
-        file<<(*it).first<<":"<<(*it).second<<std::endl;
+        list.push_back(std::make_pair(it->first,it->second));
     }
+
+    auto fun=[](std::pair<std::string,long> &x1,std::pair<std::string,long> &x2)
+    {
+        return x1.second>x2.second;
+    };
+
+    std::sort(list.begin(),list.end(),fun);
+
+    for(auto it=list.begin();it!=list.end();++it)
+    {
+        std::cout<<it->first<<":"<<it->second<<std::endl;
+        file<<it->first<<":"<<it->second<<std::endl;
+    }
+
+    file<<"遍历耗时:"<<std::chrono::duration<double>(duration).count()<<"s"<<std::endl;
 
     return 0;
 }

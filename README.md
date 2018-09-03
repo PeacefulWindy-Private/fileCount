@@ -10,3 +10,8 @@ PS1：boost库的作者们真的很厉害TAT
 PS2：关于boost::filesystem的使用
 boost::filesystem::path类提供了一个文件的路径操作，详情善用搜索
 boost::filesystem::directory_iterator类提供了文件遍历，第一次用感觉也不错
+
+
+18.9.3修改1：
+加入chrono计时（没怎么用过不太熟悉呢=-=）
+取消std::cout并增加了缓存输出，减少了遍历时间
